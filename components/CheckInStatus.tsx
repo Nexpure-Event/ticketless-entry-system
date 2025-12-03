@@ -44,6 +44,20 @@ export default function CheckInStatus({ result, onDismiss }: CheckInStatusProps)
                             </div>
                         )}
 
+                        {result.ticketType && (
+                            <div className={styles.detailRow}>
+                                <span className={styles.label}>券種 / Ticket:</span>
+                                <span className={styles.value}>{result.ticketType}</span>
+                            </div>
+                        )}
+
+                        {result.startTime && (
+                            <div className={styles.detailRow}>
+                                <span className={styles.label}>受付時間 / Reception:</span>
+                                <span className={styles.value}>{result.startTime}</span>
+                            </div>
+                        )}
+
                         {result.checkInTime && (
                             <div className={styles.detailRow}>
                                 <span className={styles.label}>入場時刻 / Time:</span>

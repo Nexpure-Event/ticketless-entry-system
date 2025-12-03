@@ -11,6 +11,8 @@ export interface CheckInResponse {
     name?: string;
     id?: string;
     checkInTime?: string;
+    ticketType?: string;
+    startTime?: string;
 }
 
 export interface DashboardData {
