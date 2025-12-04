@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { manualCheckIn } from '@/lib/gasApi';
-import styles from './ManualCheckIn.module.css';
 
 interface ManualCheckInProps {
     onCheckIn: (result: any) => void;
@@ -33,9 +32,8 @@ export default function ManualCheckIn({ onCheckIn }: ManualCheckInProps) {
     if (!isOpen) {
         return (
             <button
-                className="btn-secondary"
+                className="w-full mt-4 py-3 px-4 bg-slate-800 border border-slate-700 text-slate-300 font-semibold rounded-xl hover:bg-slate-700 hover:border-slate-600 transition-all duration-200 shadow-sm text-sm"
                 onClick={() => setIsOpen(true)}
-                style={{ width: '100%', marginTop: '1rem' }}
             >
                 手動チェックイン / Manual Check-in
             </button>
@@ -43,41 +41,46 @@ export default function ManualCheckIn({ onCheckIn }: ManualCheckInProps) {
     }
 
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
-                <h3 className={styles.title}>手動チェックイン</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-sm bg-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-700">
+                <div className="p-6">
+                    <h3 className="text-xl font-bold text-white mb-6 text-center">手動チェックイン</h3>
 
-                <form onSubmit={handleSubmit}>
-                    <div className={styles.formGroup}>
-                        <label htmlFor="memberId">会員ID / Member ID</label>
-                        <input
-                            id="memberId"
-                            type="text"
-                            value={memberId}
-                            onChange={(e) => setMemberId(e.target.value)}
-                            placeholder="例: M001"
-                            autoFocus
-                        />
-                    </div>
+                    <form onSubmit={handleSubmit}>
+                        <div className="mb-6">
+                            <label htmlFor="memberId" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                会員ID / Member ID
+                            </label>
+                            <input
+                                id="memberId"
+                                type="text"
+                                value={memberId}
+                                onChange={(e) => setMemberId(e.target.value)}
+                                placeholder="例: M001"
+                                className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-900 transition-all text-lg text-white placeholder-slate-600"
+                                autoFocus
+                            />
+                        </div>
 
-                    <div className={styles.actions}>
-                        <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => setIsOpen(false)}
-                            disabled={loading}
-                        >
-                            キャンセル
-                        </button>
-                        <button
-                            type="submit"
-                            className="btn-primary"
-                            disabled={loading || !memberId.trim()}
-                        >
-                            {loading ? '処理中...' : 'チェックイン'}
-                        </button>
-                    </div>
-                </form>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                className="flex-1 py-3 px-4 bg-slate-700 text-slate-300 font-semibold rounded-xl hover:bg-slate-600 transition-colors"
+                                onClick={() => setIsOpen(false)}
+                                disabled={loading}
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                type="submit"
+                                className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-900/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading || !memberId.trim()}
+                            >
+                                {loading ? '処理中...' : 'チェックイン'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );

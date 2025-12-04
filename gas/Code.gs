@@ -18,10 +18,20 @@ const QR_API_BASE = 'https://chart.googleapis.com/chart';
 
 // Ticket Configuration: Map TicketType to StartTime
 const TICKET_CONFIG = {
+  // New Ticket Types
+  'VIP Pass': '18:30-19:00',      // 役員招待枠
+  'PriorityPass': '18:30-19:00',  // 15400円
+  'StandardPass': '11:00-12:00',  // 13200円
+  'GuestPass': '11:00-12:00',     // 1100円 (Guest)
+  'FreeGuest': '18:30-19:00',     // 無料招待者
+
+  // Legacy/Price Mappings (for EC Data Sync)
   'VIP': '18:30-19:00',
   'General': '11:00-12:00',
-  '15400': '18:30-19:00', // Reception time for 15,400 yen
-  '13200': '11:00-12:00'  // Reception time for 13,200 yen
+  '15400': '18:30-19:00',
+  '13200': '11:00-12:00',
+  '1100': '11:00-12:00',
+  'Invitation': '18:30-19:00'
 };
 
 // ==================== UTILITY FUNCTIONS ====================
@@ -36,19 +46,23 @@ function getAttendeesSheet() {
   if (!sheet) {
     // Create sheet if it doesn't exist
     sheet = ss.insertSheet(SHEET_NAME);
-    // Updated columns: Added ReEntryHistory (I)
-    sheet.appendRow(['ID', 'Name', 'Email', 'Token', 'CheckInTime', 'EmailSent', 'TicketType', 'StartTime', 'ReEntryHistory']);
-    sheet.getRange('A1:I1').setFontWeight('bold').setBackground('#4285f4').setFontColor('#ffffff');
+    // Updated columns: Added ReEntryHistory (I), Inviter (J), Note (K)
+    sheet.appendRow(['ID', 'Name', 'Email', 'Token', 'CheckInTime', 'EmailSent', 'TicketType', 'StartTime', 'ReEntryHistory', 'Inviter', 'Note']);
+    sheet.getRange('A1:K1').setFontWeight('bold').setBackground('#4285f4').setFontColor('#ffffff');
   } else {
     // Check if new columns exist, if not add them (migration)
     const lastCol = sheet.getLastColumn();
-    if (lastCol < 9) {
-      if (lastCol < 7) {
+    if (lastCol < 11) {
+      if (lastCol < 9) {
+        // ... previous migrations ...
         sheet.getRange(1, 7).setValue('TicketType');
         sheet.getRange(1, 8).setValue('StartTime');
+        sheet.getRange(1, 9).setValue('ReEntryHistory');
       }
-      sheet.getRange(1, 9).setValue('ReEntryHistory');
-      sheet.getRange('G1:I1').setFontWeight('bold').setBackground('#4285f4').setFontColor('#ffffff');
+      // Add Inviter and Note
+      sheet.getRange(1, 10).setValue('Inviter');
+      sheet.getRange(1, 11).setValue('Note');
+      sheet.getRange('G1:K1').setFontWeight('bold').setBackground('#4285f4').setFontColor('#ffffff');
     }
   }
   
@@ -108,8 +122,8 @@ function sendTickets() {
     const email = row[2];
     let token = row[3];
     const emailSent = row[5];
-    const ticketType = row[6] || 'General'; // Default to General
-    const startTime = row[7] || '19:00';    // Default time
+    const ticketType = row[6] || 'StandardPass'; // Default
+    const startTime = row[7] || '11:00-12:00';
     
     // Skip if already sent
     if (emailSent === true || emailSent === 'TRUE') {
@@ -237,7 +251,7 @@ function checkInUser(token) {
     const checkInTime = row[4];
     const name = row[1];
     const id = row[0];
-    const ticketType = row[6] || 'General';
+    const ticketType = row[6] || 'StandardPass';
     const startTime = row[7] || '';
     const reEntryHistory = row[8] || ''; // Col I: ReEntryHistory
     
@@ -296,18 +310,29 @@ function getDashboardData() {
   
   let total = 0;
   let checkedIn = 0;
+  const breakdown = {}; // { "VIP Pass": { total: 0, checkedIn: 0 }, ... }
   
   // Skip header row
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const id = row[0];
     const checkInTime = row[4];
+    const ticketType = row[6] || 'Unknown';
     
     // Only count rows with valid ID
     if (id) {
       total++;
+      
+      // Initialize breakdown for this type if not exists
+      if (!breakdown[ticketType]) {
+        breakdown[ticketType] = { total: 0, checkedIn: 0 };
+      }
+      
+      breakdown[ticketType].total++;
+      
       if (checkInTime) {
         checkedIn++;
+        breakdown[ticketType].checkedIn++;
       }
     }
   }
@@ -315,7 +340,8 @@ function getDashboardData() {
   return {
     total: total,
     checkedIn: checkedIn,
-    notCheckedIn: total - checkedIn
+    notCheckedIn: total - checkedIn,
+    breakdown: breakdown
   };
 }
 
@@ -342,7 +368,7 @@ function manualCheckIn(memberId) {
     const id = row[0];
     const checkInTime = row[4];
     const name = row[1];
-    const ticketType = row[6] || 'General';
+    const ticketType = row[6] || 'StandardPass';
     const startTime = row[7] || '';
     const reEntryHistory = row[8] || '';
     
@@ -468,8 +494,8 @@ function syncECData() {
   
   // Setup headers if empty
   if (ecDataSheet.getLastRow() === 0) {
-    // Added TicketType column (C)
-    ecDataSheet.getRange(1, 1, 1, 3).setValues([['ID', 'Name', 'TicketType']]);
+    // Added Quantity column (D)
+    ecDataSheet.getRange(1, 1, 1, 4).setValues([['ID', 'Name', 'TicketType', 'Quantity']]);
     Logger.log('Created ECData sheet headers');
     return 'Please fill ECData sheet with data and run again.';
   }
@@ -486,80 +512,124 @@ function syncECData() {
   // Skip header
   for (let i = 1; i < masterData.length; i++) {
     const id = String(masterData[i][0]).trim();    // Col A: ID
-    // Col B is Name (index 1), skipped
     const email = String(masterData[i][2]).trim(); // Col C: Email
     if (id) emailMap.set(id, email);
   }
   
-  // 2. Read ECData
+  // 2. Read ECData and Aggregate Requirements
   const ecData = ecDataSheet.getDataRange().getValues();
-  const newAttendees = [];
-  const processedKeys = new Set(); // Track processed ID+TicketType to prevent exact duplicates
-  let matchedCount = 0;
-  let missingEmailCount = 0;
+  const requiredTickets = new Map(); // Key: ID_TicketType, Value: Count
+  const ticketInfo = new Map(); // Key: ID_TicketType, Value: {Name, TicketType, StartTime}
   
   // Skip header
   for (let i = 1; i < ecData.length; i++) {
     const id = String(ecData[i][0]).trim();
     const name = ecData[i][1];
-    const ticketTypeInput = String(ecData[i][2] || 'General').trim(); // Get TicketType from Col C
+    const ticketTypeInput = String(ecData[i][2] || 'StandardPass').trim();
+    const quantity = parseInt(ecData[i][3]) || 1; // Default to 1 if empty/invalid
     
     if (!id) continue;
     
-    // Determine StartTime based on TicketType
+    // Determine TicketType and StartTime
     let ticketType = ticketTypeInput;
-    let startTime = TICKET_CONFIG[ticketType] || '19:00'; // Default
     
-    // Handle price inputs directly
+    // Map old/price inputs to new TicketType names
     if (ticketType === '15400' || ticketType === '15,400') {
-      ticketType = 'VIP';
-      startTime = TICKET_CONFIG['VIP'];
+      ticketType = 'PriorityPass';
     } else if (ticketType === '13200' || ticketType === '13,200') {
-      ticketType = 'General';
-      startTime = TICKET_CONFIG['General'];
+      ticketType = 'StandardPass';
+    } else if (ticketType === '1100' || ticketType === '1,100' || ticketType === 'Guest') {
+      ticketType = 'GuestPass';
+    } else if (ticketType === 'Invitation' || ticketType === '無料招待者') {
+      ticketType = 'FreeGuest';
+    } else if (ticketType === '役員招待枠') {
+      ticketType = 'VIP Pass';
     }
 
-    // Composite key: ID + TicketType
+    let startTime = TICKET_CONFIG[ticketType] || '11:00-12:00'; // Default
+
     const compositeKey = `${id}_${ticketType}`;
     
-    // Skip if this exact ticket type for this ID was already processed in this run
-    if (processedKeys.has(compositeKey)) {
-      Logger.log(`Skipping duplicate ticket in EC Data: ${compositeKey}`);
-      continue;
-    }
-    processedKeys.add(compositeKey);
+    // Aggregate counts
+    const currentCount = requiredTickets.get(compositeKey) || 0;
+    requiredTickets.set(compositeKey, currentCount + quantity);
     
-    const email = emailMap.get(id) || '';
-    if (email) {
-      matchedCount++;
-    } else {
-      missingEmailCount++;
-      Logger.log(`Missing email for ID: ${id}`);
+    // Store info (overwrite is fine, usually same)
+    if (!ticketInfo.has(compositeKey)) {
+      ticketInfo.set(compositeKey, {
+        id: id,
+        name: name,
+        ticketType: ticketType,
+        startTime: startTime
+      });
     }
-    
-    // ID, Name, Email, Token, CheckInTime, EmailSent, TicketType, StartTime, ReEntryHistory
-    newAttendees.push([id, name, email, '', '', '', ticketType, startTime, '']);
   }
   
-  // 3. Write to Attendees
-  const existingKeys = new Set();
+  // 3. Count Existing Tickets in Attendees
   const existingData = attendeesSheet.getDataRange().getValues();
+  const existingCounts = new Map(); // Key: ID_TicketType, Value: Count
+  
   // Skip header
   for (let i = 1; i < existingData.length; i++) {
     const id = String(existingData[i][0]).trim();
-    const type = String(existingData[i][6] || 'General').trim(); // Col G: TicketType
-    if (id) existingKeys.add(`${id}_${type}`);
+    const type = String(existingData[i][6] || 'StandardPass').trim();
+    if (id) {
+      const key = `${id}_${type}`;
+      existingCounts.set(key, (existingCounts.get(key) || 0) + 1);
+    }
   }
   
-  // Filter out tickets that already exist in Attendees sheet
-  const rowsToAdd = newAttendees.filter(row => !existingKeys.has(`${row[0]}_${row[6]}`));
+  // 4. Generate Missing Tickets
+  const rowsToAdd = [];
+  let matchedCount = 0;
+  let missingEmailCount = 0;
   
+  requiredTickets.forEach((neededQty, key) => {
+    const info = ticketInfo.get(key);
+    const haveQty = existingCounts.get(key) || 0;
+    const toCreate = neededQty - haveQty;
+    
+    if (toCreate > 0) {
+      const email = emailMap.get(info.id) || '';
+      if (email) matchedCount++;
+      else {
+        missingEmailCount++;
+        Logger.log(`Missing email for ID: ${info.id}`);
+      }
+      
+      // Handle Guest Naming
+      let displayName = info.name;
+      let note = '';
+      if (info.ticketType === 'GuestPass') {
+        displayName = `${info.name} (Guest)`;
+        note = 'Guest Ticket';
+      }
+      
+      // Create 'toCreate' number of rows
+      for (let k = 0; k < toCreate; k++) {
+        // ID, Name, Email, Token, CheckInTime, EmailSent, TicketType, StartTime, ReEntryHistory, Inviter, Note
+        rowsToAdd.push([
+          info.id, 
+          displayName, 
+          email, 
+          '', '', '', 
+          info.ticketType, 
+          info.startTime, 
+          '', 
+          '', // Inviter (Manual entry for now, or could be Member Name)
+          note
+        ]);
+      }
+    }
+  });
+  
+  // 5. Write to Attendees
   if (rowsToAdd.length > 0) {
-    // Write 9 columns now
-    attendeesSheet.getRange(attendeesSheet.getLastRow() + 1, 1, rowsToAdd.length, 9).setValues(rowsToAdd);
+    // Write 11 columns
+    attendeesSheet.getRange(attendeesSheet.getLastRow() + 1, 1, rowsToAdd.length, 11).setValues(rowsToAdd);
   }
   
-  const resultMsg = `Synced. Processed: ${processedKeys.size}. Matched emails: ${matchedCount}. Missing emails: ${missingEmailCount}. Added new rows: ${rowsToAdd.length}.`;
+  const resultMsg = `Synced. Added ${rowsToAdd.length} new tickets. Matched emails: ${matchedCount}. Missing emails: ${missingEmailCount}.`;
   Logger.log(resultMsg);
   return resultMsg;
 }
@@ -577,14 +647,14 @@ function setupSheets() {
   let ecSheet = ss.getSheetByName('ECData');
   if (!ecSheet) {
     ecSheet = ss.insertSheet('ECData');
-    ecSheet.getRange(1, 1, 1, 3).setValues([['ID', 'Name', 'TicketType']]);
+    // Updated: ID, Name, TicketType, Quantity
+    ecSheet.getRange(1, 1, 1, 4).setValues([['ID', 'Name', 'TicketType', 'Quantity']]);
   }
   
   // MemberMaster
   let masterSheet = ss.getSheetByName('MemberMaster');
   if (!masterSheet) {
     masterSheet = ss.insertSheet('MemberMaster');
-    // Updated: ID, Name, Email
     masterSheet.getRange(1, 1, 1, 3).setValues([['ID', 'Name', 'Email']]);
   }
   

@@ -19,6 +19,12 @@ export interface DashboardData {
     total: number;
     checkedIn: number;
     notCheckedIn: number;
+    breakdown?: {
+        [key: string]: {
+            total: number;
+            checkedIn: number;
+        };
+    };
 }
 
 /**
