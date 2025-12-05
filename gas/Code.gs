@@ -192,14 +192,20 @@ function sendTickets() {
               Member ID: ${id}<br>
               Please keep this email safe.
             </p>
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+            <p style="color: #999; font-size: 11px;">
+              ネクスピュア株式会社<br>
+              お問い合わせ: event@nexpure.co.jp
+            </p>
           </body>
         </html>
       `;
       
-      MailApp.sendEmail({
-        to: email,
-        subject: subject,
+      GmailApp.sendEmail(email, subject, '', {
         htmlBody: htmlBody,
+        name: 'イベント事務局',
+        from: 'event@nexpure.co.jp',
+        replyTo: 'event@nexpure.co.jp',
         inlineImages: {
           qrcode: qrBlob
         }
