@@ -31,7 +31,8 @@ const TICKET_CONFIG = {
   '15400': '18:30-19:00',
   '13200': '11:00-12:00',
   '1100': '11:00-12:00',
-  'Invitation': '18:30-19:00'
+  'Invitation': '18:30-19:00',
+  'Conference': '12:30-15:00'     // 新設: カンファレンス（24200円）
 };
 
 // Email Content Configuration: Map TicketType to Event Title and URL
@@ -55,6 +56,11 @@ const EMAIL_CONTENT = {
   'VIP Pass': {
     title: 'プレミアムコンベンション2026',
     url: 'https://nexpure.co.jp/premium-convention-2026/'
+  },
+  'Conference': {
+    title: '2025年 9月〜11月度実績『カンファレンス』プレミアム チケット',
+    // カンファレンスは本文を完全にカスタマイズするため、这里でのurlは使用しない場合がありますが、形式として残します
+    url: '' 
   }
 };
 
@@ -185,49 +191,120 @@ function sendTickets() {
       // Determine email content based on ticket type
       const contentConfig = EMAIL_CONTENT[ticketType] || EMAIL_CONTENT['StandardPass'];
       
-      // Send email with inline image
-      const subject = `${contentConfig.title} / Event Entry Ticket`;
-      const htmlBody = `
-        <html>
-          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4285f4;">${contentConfig.title}</h2>
-            <p>こんにちは、${name}様</p>
-            <p>イベントへのご参加ありがとうございます。以下のQRコードが入場チケットとなります。</p>
-            <p style="margin: 10px 0;"><a href="${contentConfig.url}" style="color: #4285f4; text-decoration: none;">▶ イベント詳細はこちら / Event Details</a></p>
-            
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 5px 0;"><strong>券種 / Ticket Type:</strong> ${ticketType}</p>
-              <p style="margin: 5px 0;"><strong>受付時間 / Reception Time:</strong> ${startTime}</p>
-            </div>
+      let subject = '';
+      let htmlBody = '';
 
-            <p>当日、受付でこのQRコードをご提示ください。</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <img src="cid:qrcode" alt="QR Code" style="border: 2px solid #ddd; padding: 10px; width: 200px; height: 200px;" />
-            </div>
-            <p style="color: #666; font-size: 12px;">
-              会員ID: ${id}<br>
-              このメールは大切に保管してください。
-            </p>
-            <div style="margin-top: 20px; font-size: 11px; color: #999;">
-              <p>※画像が表示されない場合は、以下のリンクから確認してください:<br>
-              <a href="${qrUrl}">${qrUrl}</a></p>
-            </div>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
-            <h3 style="color: #4285f4;">Event Entry Ticket</h3>
-            <p>Hello ${name},</p>
-            <p>Thank you for registering. Please present this QR code at the reception desk.</p>
-            <p style="color: #666; font-size: 12px;">
-              Member ID: ${id}<br>
-              Please keep this email safe.
-            </p>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
-            <p style="color: #999; font-size: 11px;">
-              ネクスピュア株式会社<br>
-              お問い合わせ: event@nexpure.co.jp
-            </p>
-          </body>
-        </html>
-      `;
+      // カンファレンス用特別メールテンプレート
+      if (ticketType === 'Conference') {
+        subject = '2025年 9月〜11月度実績『カンファレンス』プレミアム チケット';
+        htmlBody = `
+          <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+              <h2 style="color: #4285f4; border-bottom: 2px solid #4285f4; padding-bottom: 10px;">${subject}</h2>
+              <p>こんにちは、${name}様</p>
+              
+              <p>【9月〜11月度『カンファレンス』プレミアム チケット 】</p>
+
+              <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="color: #4285f4; margin-top: 0;">【開催日】</h3>
+                <p style="margin-left: 10px;">
+                  2025年12月22日（月曜日）<br>
+                  12:30 開場<br>
+                  13:00 開宴<br>
+                  15:00 終宴
+                </p>
+
+                <h3 style="color: #4285f4;">【開催場所】</h3>
+                <p style="margin-left: 10px;">
+                  六本木ヒルズ 森タワー 51F<br>
+                  《ヒルズクラブ 貸切特別ルームにて》<br>
+                  ・ドレスコード有（セミフォーマル）
+                </p>
+
+                <h3 style="color: #4285f4;">【対象者】</h3>
+                <div style="margin-left: 10px;">
+                  <p>・２スター以上に新しくタイトルアップされた方はご招待となり、チケットの購入は不要です。</p>
+                  <p>・１スター以上の会員様は自費にてご参加いただけます。</p>
+                  <p>・タイトル昇格招待者の関係者も自費にてご参加いただけます。</p>
+                </div>
+
+                <h3 style="color: #4285f4;">【お食事】</h3>
+                <p style="margin-left: 10px;">
+                  着席スタイルでフルコースのお料理<br>
+                  お食事は2時間、アルコール有り、飲み放題<br>
+                  開宴30分前の12:30より入場ウェルカムドリンクスタートです。
+                </p>
+
+                <h3 style="color: #4285f4;">【内容】</h3>
+                <p style="margin-left: 10px;">
+                  新しくタイトルアップされた会員様を本社役員ならびにトップリーダーの皆様で、おもてなしをさせていただきます。
+                </p>
+              </div>
+
+              <div style="background-color: #e8f0fe; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+                 <p style="font-weight: bold; color: #1967d2;">▼ 当日の入場QRコード / Entry QR Code ▼</p>
+                 <img src="cid:qrcode" alt="QR Code" style="border: 2px solid #fff; padding: 10px; width: 200px; height: 200px; background: white;" />
+                 <p style="font-size: 12px; color: #666;">会員ID: ${id}</p>
+              </div>
+
+              <p style="font-size: 11px; color: #999;">
+                ※画像が表示されない場合は、以下のリンクから確認してください:<br>
+                <a href="${qrUrl}">${qrUrl}</a>
+              </p>
+              
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+              <p style="color: #999; font-size: 11px;">
+                ネクスピュア株式会社<br>
+                お問い合わせ: event@nexpure.co.jp
+              </p>
+            </body>
+          </html>
+        `;
+      } else {
+        // 通常チケット（StandardPass, PriorityPass, GuestPass, VIP Pass, FreeGuest）
+        subject = `${contentConfig.title} / Event Entry Ticket`;
+        htmlBody = `
+          <html>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #4285f4;">${contentConfig.title}</h2>
+              <p>こんにちは、${name}様</p>
+              <p>イベントへのご参加ありがとうございます。以下のQRコードが入場チケットとなります。</p>
+              <p style="margin: 10px 0;"><a href="${contentConfig.url}" style="color: #4285f4; text-decoration: none;">▶ イベント詳細はこちら / Event Details</a></p>
+              
+              <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>券種 / Ticket Type:</strong> ${ticketType}</p>
+                <p style="margin: 5px 0;"><strong>受付時間 / Reception Time:</strong> ${startTime}</p>
+              </div>
+
+              <p>当日、受付でこのQRコードをご提示ください。</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <img src="cid:qrcode" alt="QR Code" style="border: 2px solid #ddd; padding: 10px; width: 200px; height: 200px;" />
+              </div>
+              <p style="color: #666; font-size: 12px;">
+                会員ID: ${id}<br>
+                このメールは大切に保管してください。
+              </p>
+              <div style="margin-top: 20px; font-size: 11px; color: #999;">
+                <p>※画像が表示されない場合は、以下のリンクから確認してください:<br>
+                <a href="${qrUrl}">${qrUrl}</a></p>
+              </div>
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+              <h3 style="color: #4285f4;">Event Entry Ticket</h3>
+              <p>Hello ${name},</p>
+              <p>Thank you for registering. Please present this QR code at the reception desk.</p>
+              <p style="color: #666; font-size: 12px;">
+                Member ID: ${id}<br>
+                Please keep this email safe.
+              </p>
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+              <p style="color: #999; font-size: 11px;">
+                ネクスピュア株式会社<br>
+                お問い合わせ: event@nexpure.co.jp
+              </p>
+            </body>
+          </html>
+        `;
+      }
       
       GmailApp.sendEmail(email, subject, '', {
         htmlBody: htmlBody,
@@ -576,6 +653,8 @@ function syncECData() {
       ticketType = 'GuestPass';
     } else if (ticketType === 'Invitation' || ticketType === '無料招待者') {
       ticketType = 'FreeGuest';
+    } else if (ticketType === '24200' || ticketType === '24,200') {
+      ticketType = 'Conference';
     } else if (ticketType === '役員招待枠') {
       ticketType = 'VIP Pass';
     }
