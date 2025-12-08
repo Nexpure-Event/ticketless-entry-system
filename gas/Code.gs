@@ -34,6 +34,30 @@ const TICKET_CONFIG = {
   'Invitation': '18:30-19:00'
 };
 
+// Email Content Configuration: Map TicketType to Event Title and URL
+const EMAIL_CONTENT = {
+  'StandardPass': {
+    title: 'プレミアムコンベンション2026',
+    url: 'https://nexpure.co.jp/premium-convention-2026/'
+  },
+  'PriorityPass': {
+    title: 'プレミアムコンベンション2026　レセプションパーティ',
+    url: 'https://nexpure.co.jp/premium-convention-2026-reception-party/'
+  },
+  'GuestPass': {
+    title: 'プレミアムコンベンション2026　VIP ゲストパス',
+    url: 'https://nexpure.co.jp/premium-convention-2026-vip-guest-pass/'
+  },
+  'FreeGuest': {
+    title: 'プレミアムコンベンション2026　VIP ゲストパス',
+    url: 'https://nexpure.co.jp/premium-convention-2026-vip-guest-pass/'
+  },
+  'VIP Pass': {
+    title: 'プレミアムコンベンション2026',
+    url: 'https://nexpure.co.jp/premium-convention-2026/'
+  }
+};
+
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
@@ -158,14 +182,18 @@ function sendTickets() {
         continue;
       }
       
+      // Determine email content based on ticket type
+      const contentConfig = EMAIL_CONTENT[ticketType] || EMAIL_CONTENT['StandardPass'];
+      
       // Send email with inline image
-      const subject = 'イベント入場チケット / Event Entry Ticket';
+      const subject = `${contentConfig.title} / Event Entry Ticket`;
       const htmlBody = `
         <html>
           <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4285f4;">イベント入場チケット</h2>
+            <h2 style="color: #4285f4;">${contentConfig.title}</h2>
             <p>こんにちは、${name}様</p>
             <p>イベントへのご参加ありがとうございます。以下のQRコードが入場チケットとなります。</p>
+            <p style="margin: 10px 0;"><a href="${contentConfig.url}" style="color: #4285f4; text-decoration: none;">▶ イベント詳細はこちら / Event Details</a></p>
             
             <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <p style="margin: 5px 0;"><strong>券種 / Ticket Type:</strong> ${ticketType}</p>
