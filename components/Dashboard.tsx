@@ -37,17 +37,13 @@ export default function Dashboard() {
         return () => clearInterval(interval);
     }, []);
 
-    // Demo data for preview
+    // Demo data for preview (Simplified to avoid hardcoded types appearing when not needed)
     const demoData: DashboardData = {
-        total: 150,
-        checkedIn: 87,
-        notCheckedIn: 63,
+        total: 100,
+        checkedIn: 60,
+        notCheckedIn: 40,
         breakdown: {
-            'VIP Pass': { total: 20, checkedIn: 15 },
-            'PriorityPass': { total: 30, checkedIn: 20 },
-            'StandardPass': { total: 80, checkedIn: 40 },
-            'GuestPass': { total: 15, checkedIn: 10 },
-            'FreeGuest': { total: 5, checkedIn: 2 }
+            'Example Ticket': { total: 100, checkedIn: 60 }
         }
     };
 
@@ -130,6 +126,10 @@ export default function Dashboard() {
                                     colorClass = "bg-blue-900/20 text-blue-400 border-blue-900/50";
                                     barColor = "bg-blue-500";
                                     icon = "🎫";
+                                } else if (type.includes('Conference')) {
+                                    colorClass = "bg-indigo-900/20 text-indigo-400 border-indigo-900/50";
+                                    barColor = "bg-indigo-500";
+                                    icon = "👔";
                                 } else if (type.includes('Guest')) {
                                     colorClass = "bg-green-900/20 text-green-400 border-green-900/50";
                                     barColor = "bg-green-500";
