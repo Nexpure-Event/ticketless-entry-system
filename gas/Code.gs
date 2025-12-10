@@ -32,7 +32,8 @@ const TICKET_CONFIG = {
   '13200': '11:00-12:00',
   '1100': '11:00-12:00',
   'Invitation': '18:30-19:00',
-  'Conference': '12:30-15:00'     // 新設: カンファレンス（24200円）
+  'Conference': '12:30-15:00',     // 新設: カンファレンス（24200円）
+  'ConferenceInvitation': '12:30-15:00' // 新設: カンファレンス招待
 };
 
 // Email Content Configuration: Map TicketType to Event Title and URL
@@ -61,6 +62,10 @@ const EMAIL_CONTENT = {
     title: '2025年 9月〜11月度実績『カンファレンス』プレミアム チケット',
     // カンファレンスは本文を完全にカスタマイズするため、这里でのurlは使用しない場合がありますが、形式として残します
     url: '' 
+  },
+  'ConferenceInvitation': {
+    title: '2025年 9月〜11月度実績『カンファレンス』プレミアム チケット (招待)',
+    url: ''
   }
 };
 
@@ -195,7 +200,7 @@ function sendTickets() {
       let htmlBody = '';
 
       // カンファレンス用特別メールテンプレート
-      if (ticketType === 'Conference') {
+      if (ticketType === 'Conference' || ticketType === 'ConferenceInvitation') {
         subject = '2025年 9月〜11月度実績『カンファレンス』プレミアム チケット';
         htmlBody = `
           <html>
@@ -655,6 +660,8 @@ function syncECData() {
       ticketType = 'FreeGuest';
     } else if (ticketType === '24200' || ticketType === '24,200') {
       ticketType = 'Conference';
+    } else if (ticketType === 'ConferenceInvitation' || ticketType === 'カンファレンス招待') {
+      ticketType = 'ConferenceInvitation';
     } else if (ticketType === '役員招待枠') {
       ticketType = 'VIP Pass';
     }

@@ -127,9 +127,17 @@ export default function Dashboard() {
                                     barColor = "bg-blue-500";
                                     icon = "🎫";
                                 } else if (type.includes('Conference')) {
+                                    // Default Conference styling
                                     colorClass = "bg-indigo-900/20 text-indigo-400 border-indigo-900/50";
                                     barColor = "bg-indigo-500";
                                     icon = "👔";
+
+                                    // Special styling for ConferenceInvitation
+                                    if (type === 'ConferenceInvitation') {
+                                        colorClass = "bg-pink-900/20 text-pink-400 border-pink-900/50";
+                                        barColor = "bg-pink-500";
+                                        icon = "🤝";
+                                    }
                                 } else if (type.includes('Guest')) {
                                     colorClass = "bg-green-900/20 text-green-400 border-green-900/50";
                                     barColor = "bg-green-500";
